@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solviva Energy — Operational Throughput Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0F1117;
+    --bg2: #181C27;
+    --bg3: #1E2333;
+    --border: #2A2F42;
+    --border2: #353B52;
+    --text: #E8EAF0;
+    --text2: #9BA3BC;
+    --text3: #5C6480;
+    --green: #2ECC8F;
+    --green-bg: rgba(46,204,143,.12);
+    --green-text: #2ECC8F;
+    --amber: #F5A623;
+    --amber-bg: rgba(245,166,35,.12);
+    --amber-text: #F5A623;
+    --red: #E8455A;
+    --red-bg: rgba(232,69,90,.12);
+    --red-text: #E8455A;
+    --blue: #4A90D9;
+    --purple: #7B6FE8;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo { width: 28px; height: 28px; background: var(--green); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+  .logo svg { width: 16px; height: 16px; fill: #0F1117; }
+  .header-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .header-sub { font-size: 12px; color: var(--text3); font-family: 'DM Mono', monospace; }
+  .preset-row { display: flex; gap: 6px; }
+  .pb { font-size: 12px; padding: 5px 14px; border-radius: 6px; border: 1px solid var(--border2); background: transparent; color: var(--text2); cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .15s; }
+  .pb:hover { border-color: var(--text3); color: var(--text); }
+  .pb.active { background: var(--bg3); border-color: var(--green); color: var(--green); font-weight: 500; }
+
+  /* ── LAYOUT ── */
+  .main { max-width: 1200px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
+
+  /* ── STAGE BLOCKS ── */
+  .sb {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+    transition: border-color .2s;
+  }
+  .sb:hover { border-color: var(--border2); }
+  .sh { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; }
+  .sp { font-size: 10px; font-weight: 600; letter-spacing: .06em; padding: 3px 10px; border-radius: 20px; font-family: 'DM Mono', monospace; }
+  .sp.ok { background: var(--green-bg); color: var(--green-text); border: 1px solid rgba(46,204,143,.25); }
+  .sp.warn { background: var(--amber-bg); color: var(--amber-text); border: 1px solid rgba(245,166,35,.25); }
+  .sp.danger { background: var(--red-bg); color: var(--red-text); border: 1px solid rgba(232,69,90,.25); }
+  .st { font-size: 14px; font-weight: 600; color: var(--text); }
+  .tc { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem 2.5rem; }
+
+  /* ── SECTION LABELS ── */
+  .cl { font-size: 10px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--text3); margin-bottom: .6rem; font-family: 'DM Mono', monospace; }
+  .ss { border-top: 1px solid var(--border); margin-top: .9rem; padding-top: .9rem; }
+  .sl { font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text3); margin-bottom: .5rem; font-family: 'DM Mono', monospace; }
+
+  /* ── INPUTS ── */
+  .inp { display: flex; flex-direction: column; gap: 3px; margin-bottom: .6rem; }
+  .inp label { font-size: 12px; color: var(--text2); }
+  .inp .rw { display: flex; align-items: center; gap: 8px; }
+  .inp .vv { font-size: 12px; font-weight: 600; min-width: 44px; text-align: right; color: var(--text); font-family: 'DM Mono', monospace; }
+  .inp .ht { font-size: 11px; color: var(--text3); }
+  input[type=range] {
+    flex: 1; -webkit-appearance: none; appearance: none;
+    height: 3px; border-radius: 2px; background: var(--border2); outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px;
+    border-radius: 50%; background: var(--green); cursor: pointer;
+    box-shadow: 0 0 0 3px rgba(46,204,143,.15);
+    transition: box-shadow .15s;
+  }
+  input[type=range]:hover::-webkit-slider-thumb { box-shadow: 0 0 0 5px rgba(46,204,143,.2); }
+
+  /* ── METRICS ── */
+  .ms { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .mt { background: var(--bg3); border-radius: var(--radius); border: 1px solid var(--border); padding: .6rem .9rem; }
+  .mt.full { grid-column: 1/-1; }
+  .ml { font-size: 11px; color: var(--text2); margin-bottom: 2px; }
+  .mv { font-size: 16px; font-weight: 600; color: var(--text); line-height: 1.2; font-family: 'DM Mono', monospace; }
+  .mv.hero { font-size: 24px; }
+  .mv.ok { color: var(--green); }
+  .mv.warn { color: var(--amber); }
+  .mv.danger { color: var(--red); }
+  .ms2 { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; }
+  .g4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 7px; }
+
+  /* ── UTIL BARS ── */
+  .ub { height: 3px; background: var(--border2); border-radius: 2px; margin-top: 5px; }
+  .uf { height: 100%; border-radius: 2px; transition: width .3s ease; }
+
+  /* ── SPLIT BAR ── */
+  .split-bar { display: flex; height: 5px; border-radius: 3px; overflow: hidden; margin: 5px 0 4px; }
+  .split-leg { display: flex; gap: 12px; font-size: 11px; color: var(--text2); }
+  .sd { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 3px; vertical-align: middle; }
+
+  /* ── FUNNEL VIS ── */
+  .funnel-vis { display: flex; flex-direction: column; gap: 4px; margin: .5rem 0; }
+  .fv-row { display: flex; align-items: center; gap: 8px; }
+  .fv-lbl { font-size: 11px; color: var(--text2); width: 90px; flex-shrink: 0; text-align: right; font-family: 'DM Mono', monospace; }
+  .fv-bar-wrap { flex: 1; display: flex; align-items: center; height: 20px; }
+  .fv-bar { height: 20px; border-radius: 4px; min-width: 2px; transition: width .3s ease; }
+  .fv-n { font-size: 11px; font-weight: 600; color: var(--text); margin-left: 7px; white-space: nowrap; font-family: 'DM Mono', monospace; }
+
+  /* ── RELATION BARS ── */
+  .rel-row { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
+  .rel-lbl { font-size: 11px; color: var(--text2); width: 115px; flex-shrink: 0; }
+  .rel-bg { flex: 1; background: var(--border2); border-radius: 3px; height: 10px; overflow: hidden; }
+  .rel-fill { height: 100%; border-radius: 3px; transition: width .3s ease; }
+  .rel-n { font-size: 11px; font-weight: 600; color: var(--text); width: 50px; text-align: right; flex-shrink: 0; font-family: 'DM Mono', monospace; }
+
+  /* ── CALC BOX ── */
+  .calc-box { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: .45rem .8rem; margin-top: .3rem; font-size: 11px; color: var(--text2); }
+  .calc-box span { font-weight: 600; color: var(--green); font-family: 'DM Mono', monospace; }
+
+  /* ── INLINE ALERTS ── */
+  .bn-inline { display: flex; flex-direction: column; gap: 5px; margin-top: .6rem; }
+  .bi { display: flex; gap: 7px; align-items: flex-start; background: var(--red-bg); border: 1px solid rgba(232,69,90,.2); border-radius: 6px; padding: .4rem .7rem; }
+  .bi .ico { font-size: 12px; color: var(--red); flex-shrink: 0; margin-top: 1px; }
+  .bi span { font-size: 12px; color: var(--red-text); line-height: 1.4; }
+  .biw { display: flex; gap: 7px; align-items: flex-start; background: var(--amber-bg); border: 1px solid rgba(245,166,35,.2); border-radius: 6px; padding: .4rem .7rem; }
+  .biw .ico { font-size: 12px; color: var(--amber); flex-shrink: 0; margin-top: 1px; }
+  .biw span { font-size: 12px; color: var(--amber-text); line-height: 1.4; }
+
+  /* ── DIVIDER ── */
+  .dv { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+
+  /* ── FLOW SECTION ── */
+  .section-title { font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--text3); margin-bottom: .75rem; font-family: 'DM Mono', monospace; }
+  .fr { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .fl { font-size: 12px; color: var(--text2); width: 155px; flex-shrink: 0; }
+  .fb { flex: 1; background: var(--border2); border-radius: 3px; height: 12px; overflow: hidden; }
+  .ff { height: 100%; border-radius: 3px; transition: width .3s ease; }
+  .fn { font-size: 12px; font-weight: 600; color: var(--text); width: 56px; text-align: right; flex-shrink: 0; font-family: 'DM Mono', monospace; }
+  .fc { font-size: 11px; color: var(--text3); width: 70px; text-align: right; flex-shrink: 0; }
+
+  /* ── BOTTLENECK SUMMARY ── */
+  .bw { display: flex; flex-direction: column; gap: 7px; }
+  .bn { display: flex; gap: 10px; align-items: flex-start; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: .7rem 1rem; }
+  .bn .ico { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+  .bt { font-size: 13px; color: var(--text); line-height: 1.45; }
+  .bt b { font-weight: 600; }
+
+  /* ── FOOTER ── */
+  .footer { text-align: center; padding: 2rem; font-size: 11px; color: var(--text3); border-top: 1px solid var(--border); margin-top: 1rem; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <div class="logo">
+      <svg viewBox="0 0 16 16"><path d="M8 1L2 5v6l6 4 6-4V5L8 1zm0 2.2L12 6v4.5L8 13 4 10.5V6l4-2.8z"/></svg>
+    </div>
+    <div>
+      <div class="header-title">Solviva Energy</div>
+      <div class="header-sub">Operational Throughput Dashboard</div>
+    </div>
+  </div>
+  <div class="preset-row">
+    <button class="pb active" id="btn-current" onclick="setMode('current')">Current</button>
+    <button class="pb" id="btn-june" onclick="setMode('june')">June 2026</button>
+    <button class="pb" id="btn-july" onclick="setMode('july')">July 2026+</button>
+    <button class="pb" id="btn-custom" onclick="setMode('custom')">Custom</button>
+  </div>
+</header>
+
+<main class="main">
+
+<!-- S1 -->
+<div class="sb">
+  <div class="sh"><span class="sp ok" id="pill-s1">S1</span><span class="st">Lead &amp; MQL Contact</span></div>
+  <div class="tc">
+    <div>
+      <div class="cl">Capacity inputs</div>
+      <div class="inp"><label>Monthly MQL inflow</label>
+        <div class="rw"><input type="range" id="mql-in" min="100" max="30000" step="100" value="600" oninput="sc();r()"><span class="vv" id="v-mql-in">600</span></div>
+      </div>
+      <div class="ss">
+        <div class="sl">MQL routing split</div>
+        <div class="inp"><label>% routed to Sales Support</label>
+          <div class="rw"><input type="range" id="mql-split" min="0" max="100" step="1" value="70" oninput="sc();r()"><span class="vv" id="v-mql-split">70%</span></div>
+        </div>
+        <div class="split-bar"><div id="sbar-a" style="width:70%;background:#4A90D9"></div><div id="sbar-b" style="flex:1;background:#2ECC8F"></div></div>
+        <div class="split-leg"><span><span class="sd" style="background:#4A90D9"></span>Support <span id="sn-ss">—</span></span><span><span class="sd" style="background:#2ECC8F"></span>Reps <span id="sn-sr">—</span></span></div>
+      </div>
+      <div class="ss">
+        <div class="sl">Headcount &amp; daily capacity</div>
+        <div class="inp"><label>Sales Support HC</label>
+          <div class="rw"><input type="range" id="ss-hc" min="1" max="30" step="1" value="11" oninput="sc();r()"><span class="vv" id="v-ss-hc">11</span></div>
+        </div>
+        <div class="inp"><label>Support MQL contacts / agent / day</label>
+          <div class="rw"><input type="range" id="ss-rate" min="1" max="100" step="1" value="50" oninput="sc();r()"><span class="vv" id="v-ss-rate">50</span></div>
+          <div class="ht">Across all call attempts combined</div>
+        </div>
+        <div class="inp"><label>Sales Reps HC</label>
+          <div class="rw"><input type="range" id="sr-hc" min="1" max="50" step="1" value="13" oninput="sc();r()"><span class="vv" id="v-sr-hc">13</span></div>
+        </div>
+        <div class="inp"><label>Rep MQL contacts / rep / day</label>
+          <div class="rw"><input type="range" id="sr-rate" min="1" max="30" step="1" value="5" oninput="sc();r()"><span class="vv" id="v-sr-rate">5</span></div>
+          <div class="ht">Across all call attempts combined</div>
+        </div>
+      </div>
+      <div class="ss">
+        <div class="sl">Call answer &amp; conversion rates</div>
+        <div class="inp"><label>1st call answer rate</label>
+          <div class="rw"><input type="range" id="ar1" min="0" max="100" step="1" value="25" oninput="sc();r()"><span class="vv" id="v-ar1">25%</span></div>
+        </div>
+        <div class="inp"><label>2nd call answer rate</label>
+          <div class="rw"><input type="range" id="ar2" min="0" max="100" step="1" value="25" oninput="sc();r()"><span class="vv" id="v-ar2">25%</span></div>
+          <div class="ht">% of non-answerers from call 1</div>
+        </div>
+        <div class="inp"><label>3rd call answer rate</label>
+          <div class="rw"><input type="range" id="ar3" min="0" max="100" step="1" value="25" oninput="sc();r()"><span class="vv" id="v-ar3">25%</span></div>
+          <div class="ht">% of non-answerers from call 2</div>
+        </div>
+        <div class="inp"><label>Answered → SQL conversion</label>
+          <div class="rw"><input type="range" id="ans-sql" min="0" max="100" step="1" value="40" oninput="sc();r()"><span class="vv" id="v-ans-sql">40%</span></div>
+          <div class="ht">% of reached MQLs that qualify</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="cl">Output &amp; capacity</div>
+      <div class="ms">
+        <div class="mt"><div class="ml">Support capacity / mo</div><div class="mv" id="m-ss-cap">—</div><div class="ms2" id="m-ss-cap-sub">—</div></div>
+        <div class="mt"><div class="ml">Rep capacity / mo</div><div class="mv" id="m-sr-cap">—</div><div class="ms2" id="m-sr-cap-sub">—</div></div>
+        <div class="mt full"><div class="ml">Total contact capacity / mo</div><div class="mv hero" id="m-tot-cap">—</div></div>
+      </div>
+      <div class="ss">
+        <div class="sl">Utilisation — MQLs assigned vs capacity</div>
+        <div class="ms">
+          <div class="mt"><div class="ml">Support MQLs assigned</div><div class="mv" id="m-ss-mqls">—</div></div>
+          <div class="mt"><div class="ml">Rep MQLs assigned</div><div class="mv" id="m-sr-mqls">—</div></div>
+          <div class="mt"><div class="ml">Support utilisation</div><div class="mv" id="m-ss-util">—</div><div class="ub"><div class="uf" id="bar-ss"></div></div><div class="ms2" id="m-ss-util-sub">—</div></div>
+          <div class="mt"><div class="ml">Rep utilisation</div><div class="mv" id="m-sr-util">—</div><div class="ub"><div class="uf" id="bar-sr"></div></div><div class="ms2" id="m-sr-util-sub">—</div></div>
+          <div class="mt full"><div class="ml">Combined utilisation</div><div class="mv" id="m-tot-util">—</div><div class="ub"><div class="uf" id="bar-tot"></div></div><div class="ms2" id="m-tot-util-sub">—</div></div>
+        </div>
+      </div>
+      <div class="bn-inline" id="bn-s1-inline"></div>
+      <div class="ss">
+        <div class="sl">Call funnel — MQL → SQL</div>
+        <div class="funnel-vis" id="call-funnel"></div>
+        <div class="ms" style="margin-top:8px">
+          <div class="mt"><div class="ml">Total MQLs reached</div><div class="mv" id="m-reached">—</div><div class="ms2" id="m-reached-sub">—</div></div>
+          <div class="mt"><div class="ml">Total MQLs dropped</div><div class="mv" id="m-dropped">—</div></div>
+          <div class="mt"><div class="ml">SQLs produced</div><div class="mv" id="m-sqls">—</div></div>
+          <div class="mt"><div class="ml">MQL → SQL rate</div><div class="mv" id="m-mql-sql-rate">—</div><div class="ms2">of total inflow</div></div>
+        </div>
+      </div>
+      <div class="ss">
+        <div class="sl">By call attempt</div>
+        <div class="g4">
+          <div class="mt"><div class="ml">C1 attempts</div><div class="mv" id="m-c1-att">—</div></div>
+          <div class="mt"><div class="ml">C1 answered</div><div class="mv" id="m-c1-ans">—</div></div>
+          <div class="mt"><div class="ml">C2 attempts</div><div class="mv" id="m-c2-att">—</div></div>
+          <div class="mt"><div class="ml">C2 answered</div><div class="mv" id="m-c2-ans">—</div></div>
+        </div>
+        <div class="g4" style="margin-top:7px">
+          <div class="mt"><div class="ml">C3 attempts</div><div class="mv" id="m-c3-att">—</div></div>
+          <div class="mt"><div class="ml">C3 answered</div><div class="mv" id="m-c3-ans">—</div></div>
+          <div class="mt"><div class="ml">Never attempted</div><div class="mv" id="m-never">—</div></div>
+          <div class="mt"><div class="ml">Overall reach rate</div><div class="mv" id="m-reach-rate">—</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- S2–S3 -->
+<div class="sb">
+  <div class="sh"><span class="sp ok" id="pill-s23">S2–S3</span><span class="st">SQL → Signed Proposal → Site Visit</span></div>
+  <div class="tc">
+    <div>
+      <div class="cl">Capacity inputs</div>
+      <div class="inp"><label>SQL → signed proposal conversion</label>
+        <div class="rw"><input type="range" id="sql-prop" min="0" max="100" step="1" value="60" oninput="sc();r()"><span class="vv" id="v-sql-prop">60%</span></div>
+        <div class="ht">% of SQLs that reach a signed proposal</div>
+      </div>
+      <div class="inp"><label>Signed proposal → site visit conversion</label>
+        <div class="rw"><input type="range" id="prop-sv" min="0" max="100" step="1" value="90" oninput="sc();r()"><span class="vv" id="v-prop-sv">90%</span></div>
+        <div class="ht">% of proposals that schedule a site visit</div>
+      </div>
+      <div class="ss">
+        <div class="sl">In-house tech assessor capacity</div>
+        <div class="inp"><label>In-house tech assessors (TAs)</label>
+          <div class="rw"><input type="range" id="ta-hc" min="1" max="20" step="1" value="8" oninput="sc();r()"><span class="vv" id="v-ta-hc">8</span></div>
+        </div>
+        <div class="inp"><label>TA ramp factor</label>
+          <div class="rw"><input type="range" id="ta-ramp" min="1" max="100" step="1" value="60" oninput="sc();r()"><span class="vv" id="v-ta-ramp">60%</span></div>
+          <div class="ht">% of 40 visits/TA/mo at full ramp</div>
+        </div>
+      </div>
+      <div class="ss">
+        <div class="sl">Outsourced tech assessor capacity</div>
+        <div class="inp"><label>Outsourced TA slots / week</label>
+          <div class="rw"><input type="range" id="sv-out-wk" min="0" max="100" step="1" value="25" oninput="sc();r()"><span class="vv" id="v-sv-out-wk">25</span></div>
+          <div class="ht">₱11,000 / visit — variable (Ironside)</div>
+        </div>
+        <div class="calc-box">Monthly capacity: <span id="calc-sv-out-mo">—</span> visits/mo (<span id="calc-sv-out-wk">—</span> wks × slots/wk)</div>
+      </div>
+      <div class="ss">
+        <div class="sl">In-house vs outsourced split</div>
+        <div class="inp"><label>% site visits → in-house</label>
+          <div class="rw"><input type="range" id="sv-ih-pct" min="0" max="100" step="1" value="50" oninput="sc();r()"><span class="vv" id="v-sv-ih-pct">50%</span></div>
+          <div class="ht">Remainder goes to outsourced</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="cl">Output &amp; cost</div>
+      <div class="ms">
+        <div class="mt"><div class="ml">Proposals / mo</div><div class="mv hero" id="m-props">—</div></div>
+        <div class="mt"><div class="ml">Site visits needed / mo</div><div class="mv hero" id="m-sv-dem">—</div></div>
+        <div class="mt"><div class="ml">Total SV capacity / mo</div><div class="mv hero" id="m-sv-tot">—</div></div>
+        <div class="mt full"><div class="ml">Site visit utilisation</div><div class="mv hero" id="m-sv-util">—</div><div class="ub"><div class="uf" id="bar-sv"></div></div></div>
+      </div>
+      <div class="bn-inline" id="bn-s23-inline"></div>
+      <div class="ss">
+        <div class="sl">Capacity &amp; utilisation breakdown</div>
+        <div class="ms">
+          <div class="mt"><div class="ml">In-house capacity / mo</div><div class="mv" id="m-sv-ih-cap">—</div><div class="ms2" id="m-sv-ih-sub">—</div></div>
+          <div class="mt"><div class="ml">Outsourced capacity / mo</div><div class="mv" id="m-sv-out-cap">—</div></div>
+          <div class="mt"><div class="ml">In-house demand</div><div class="mv" id="m-sv-ih-dem">—</div></div>
+          <div class="mt"><div class="ml">Outsourced demand</div><div class="mv" id="m-sv-out-dem">—</div></div>
+          <div class="mt"><div class="ml">In-house utilisation</div><div class="mv" id="m-sv-ih-util">—</div><div class="ub"><div class="uf" id="bar-sv-ih"></div></div></div>
+          <div class="mt"><div class="ml">Outsourced utilisation</div><div class="mv" id="m-sv-out-util">—</div><div class="ub"><div class="uf" id="bar-sv-out"></div></div></div>
+          <div class="mt"><div class="ml">Visits completed</div><div class="mv" id="m-sv-act">—</div></div>
+          <div class="mt"><div class="ml">Proposals dropped</div><div class="mv" id="m-sv-drop">—</div></div>
+        </div>
+      </div>
+      <div class="ss">
+        <div class="sl">Cost breakdown</div>
+        <div class="mt full" style="margin-bottom:8px"><div class="ml">Total monthly site visit cost</div><div class="mv hero" id="m-sv-cost-tot">—</div><div class="ms2" id="m-sv-cost-sub">—</div></div>
+        <div class="ms">
+          <div class="mt"><div class="ml">In-house monthly cost</div><div class="mv" id="m-sv-ih-ctot">—</div><div class="ms2">Fixed (HC + fleet)</div></div>
+          <div class="mt"><div class="ml">Outsourced monthly cost</div><div class="mv" id="m-sv-out-ctot">—</div><div class="ms2">Variable (per visit)</div></div>
+          <div class="mt"><div class="ml">In-house cost / visit</div><div class="mv" id="m-sv-ih-cpv">—</div><div class="ms2" id="m-sv-ih-cpv-sub">—</div></div>
+          <div class="mt"><div class="ml">Outsourced cost / visit</div><div class="mv">₱11,000</div><div class="ms2">Variable</div></div>
+          <div class="mt"><div class="ml">Blended cost / visit</div><div class="mv" id="m-sv-blend">—</div></div>
+          <div class="mt"><div class="ml">Sales cost / SQL</div><div class="mv" id="m-cost-sql">—</div><div class="ms2">Rep + support HC</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- S4 -->
+<div class="sb">
+  <div class="sh"><span class="sp ok" id="pill-s4">S4</span><span class="st">IFC Document</span></div>
+  <div class="tc">
+    <div>
+      <div class="cl">Capacity inputs</div>
+      <div class="inp"><label>Drafters</label>
+        <div class="rw"><input type="range" id="drafters" min="1" max="30" step="1" value="8" oninput="sc();r()"><span class="vv" id="v-drafters">8</span></div>
+      </div>
+      <div class="inp"><label>IFC drafts / drafter / day</label>
+        <div class="rw"><input type="range" id="ifc-rate" min="0.5" max="5" step="0.5" value="1.5" oninput="sc();r()"><span class="vv" id="v-ifc-rate">1.5</span></div>
+      </div>
+      <div class="inp"><label>Design Engineers (DEs)</label>
+        <div class="rw"><input type="range" id="de-hc" min="1" max="15" step="1" value="2" oninput="sc();r()"><span class="vv" id="v-de-hc">2</span></div>
+      </div>
+      <div class="inp"><label>DE review capacity / DE / day</label>
+        <div class="rw"><input type="range" id="de-rate" min="0.5" max="8" step="0.5" value="3" oninput="sc();r()"><span class="vv" id="v-de-rate">3</span></div>
+        <div class="ht" id="hint-de">—</div>
+      </div>
+    </div>
+    <div>
+      <div class="cl">Output &amp; cost</div>
+      <div class="ss" style="border-top:none;margin-top:0;padding-top:0">
+        <div class="sl">Site visit → IFC relationship</div>
+        <div id="sv-ifc-rel"></div>
+        <div class="ms" style="margin-top:8px">
+          <div class="mt"><div class="ml">Site visits in</div><div class="mv" id="m-ifc-sv-in">—</div></div>
+          <div class="mt"><div class="ml">IFC capacity / mo</div><div class="mv" id="m-ifc-mo">—</div></div>
+          <div class="mt full"><div class="ml">IFC utilisation</div><div class="mv" id="m-ifc-util">—</div><div class="ub"><div class="uf" id="bar-ifc"></div></div></div>
+        </div>
+      </div>
+      <div class="ss">
+        <div class="sl">Drafter vs DE capacity</div>
+        <div class="g4">
+          <div class="mt"><div class="ml">Drafter / day</div><div class="mv" id="m-draft-day">—</div></div>
+          <div class="mt"><div class="ml">Drafter / mo</div><div class="mv" id="m-draft-mo">—</div></div>
+          <div class="mt"><div class="ml">DE / day</div><div class="mv" id="m-de-day">—</div></div>
+          <div class="mt"><div class="ml">DE / mo</div><div class="mv" id="m-de-mo">—</div></div>
+        </div>
+        <div class="ms" style="margin-top:7px">
+          <div class="mt"><div class="ml">IFC output / day (bottleneck)</div><div class="mv" id="m-ifc-day">—</div><div class="ms2">MIN(drafter, DE)</div></div>
+          <div class="mt"><div class="ml">DEs needed</div><div class="mv" id="m-de-needed">—</div><div class="ms2">to match drafter output</div></div>
+          <div class="mt"><div class="ml">IFC unit cost</div><div class="mv" id="m-ifc-cost">—</div></div>
+          <div class="mt"><div class="ml">IFCs dropped</div><div class="mv" id="m-ifc-drop">—</div></div>
+        </div>
+      </div>
+      <div class="bn-inline" id="bn-s4-inline"></div>
+    </div>
+  </div>
+</div>
+
+<!-- S5 -->
+<div class="sb">
+  <div class="sh"><span class="sp ok" id="pill-s5">S5</span><span class="st">Closed Sale</span></div>
+  <div class="tc">
+    <div>
+      <div class="cl">Conversion inputs</div>
+      <div class="inp"><label>IFC → Closed Sale conversion</label>
+        <div class="rw"><input type="range" id="ifc-close" min="30" max="100" step="1" value="70" oninput="sc();r()"><span class="vv" id="v-ifc-close">70%</span></div>
+      </div>
+    </div>
+    <div>
+      <div class="cl">SQL → Closed Sale funnel</div>
+      <div id="sql-close-rel"></div>
+      <div class="ms" style="margin-top:8px">
+        <div class="mt"><div class="ml">SQLs in</div><div class="mv" id="m-s5-sqls">—</div></div>
+        <div class="mt"><div class="ml">Proposals</div><div class="mv" id="m-s5-props">—</div></div>
+        <div class="mt"><div class="ml">Site visits</div><div class="mv" id="m-s5-svs">—</div></div>
+        <div class="mt"><div class="ml">IFCs produced</div><div class="mv" id="m-s5-ifcs">—</div></div>
+        <div class="mt"><div class="ml">Closed sales / mo</div><div class="mv hero" id="m-closed">—</div></div>
+        <div class="mt"><div class="ml">SQL → Close rate</div><div class="mv hero" id="m-sql-close-rate">—</div><div class="ms2">overall funnel conversion</div></div>
+        <div class="mt"><div class="ml">Sales cost / closed deal</div><div class="mv" id="m-cost-deal">—</div><div class="ms2">Rep + support HC</div></div>
+        <div class="mt"><div class="ml">Total cost / closed deal</div><div class="mv" id="m-total-cost-deal">—</div><div class="ms2">Sales + site visit</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- S6 -->
+<div class="sb">
+  <div class="sh"><span class="sp ok" id="pill-s6">S6</span><span class="st">Installation</span></div>
+  <div class="tc">
+    <div>
+      <div class="cl">Capacity inputs</div>
+      <div class="ss" style="border-top:none;margin-top:0;padding-top:0">
+        <div class="sl">Install teams</div>
+        <div class="inp"><label>Total install teams</label>
+          <div class="rw"><input type="range" id="total-teams" min="1" max="40" step="1" value="10" oninput="sc();r()"><span class="vv" id="v-total-teams">10</span></div>
+        </div>
+        <div class="inp"><label>% in-house teams</label>
+          <div class="rw"><input type="range" id="ih-team-pct" min="0" max="100" step="1" value="20" oninput="sc();r()"><span class="vv" id="v-ih-team-pct">20%</span></div>
+          <div class="ht">Remainder outsourced</div>
+        </div>
+        <div class="split-bar" style="margin-top:5px"><div id="team-bar-a" style="width:20%;background:#4A90D9"></div><div id="team-bar-b" style="flex:1;background:#2ECC8F"></div></div>
+        <div class="split-leg" style="margin-bottom:.5rem"><span><span class="sd" style="background:#4A90D9"></span>In-house <span id="team-n-ih">—</span></span><span><span class="sd" style="background:#2ECC8F"></span>Outsourced <span id="team-n-out">—</span></span></div>
+        <div class="inp"><label>Installs / team / week</label>
+          <div class="rw"><input type="range" id="inst-per-team" min="1" max="10" step="1" value="3" oninput="sc();r()"><span class="vv" id="v-inst-per-team">3</span></div>
+        </div>
+      </div>
+      <div class="ss">
+        <div class="sl">PE coordination ceiling</div>
+        <div class="inp"><label>Senior PEs</label>
+          <div class="rw"><input type="range" id="pe-sr" min="1" max="15" step="1" value="3" oninput="sc();r()"><span class="vv" id="v-pe-sr">3</span></div>
+        </div>
+        <div class="inp"><label>Junior PEs</label>
+          <div class="rw"><input type="range" id="pe-jr" min="0" max="10" step="1" value="2" oninput="sc();r()"><span class="vv" id="v-pe-jr">2</span></div>
+        </div>
+        <div class="inp"><label>Installs / PE / week</label>
+          <div class="rw"><input type="range" id="inst-per-pe" min="1" max="10" step="1" value="10" oninput="sc();r()"><span class="vv" id="v-inst-per-pe">10</span></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="cl">Output &amp; utilisation</div>
+      <div class="ss" style="border-top:none;margin-top:0;padding-top:0">
+        <div class="sl">Crew capacity</div>
+        <div class="g3">
+          <div class="mt"><div class="ml">In-house / mo</div><div class="mv" id="m-ih-cap">—</div><div class="ms2" id="m-ih-sub">—</div></div>
+          <div class="mt"><div class="ml">Outsourced / mo</div><div class="mv" id="m-out-cap">—</div><div class="ms2" id="m-out-sub">—</div></div>
+          <div class="mt"><div class="ml">Total crew / mo</div><div class="mv" id="m-crew-tot">—</div></div>
+          <div class="mt"><div class="ml">In-house util</div><div class="mv" id="m-ih-util">—</div><div class="ub"><div class="uf" id="bar-ih"></div></div></div>
+          <div class="mt"><div class="ml">Outsourced util</div><div class="mv" id="m-out-util">—</div><div class="ub"><div class="uf" id="bar-out"></div></div></div>
+          <div class="mt"><div class="ml">Total crew util</div><div class="mv" id="m-crew-util">—</div><div class="ub"><div class="uf" id="bar-crew"></div></div></div>
+        </div>
+      </div>
+      <div class="ss">
+        <div class="sl">PE ceiling</div>
+        <div class="ms">
+          <div class="mt"><div class="ml">PE ceiling / mo</div><div class="mv" id="m-pe-ceil">—</div><div class="ms2" id="m-pe-sub">—</div></div>
+          <div class="mt"><div class="ml">PE utilisation</div><div class="mv" id="m-pe-util">—</div><div class="ub"><div class="uf" id="bar-pe"></div></div></div>
+        </div>
+      </div>
+      <div class="ss">
+        <div class="sl">Effective output</div>
+        <div class="ms">
+          <div class="mt"><div class="ml">Effective capacity</div><div class="mv" id="m-eff-cap">—</div><div class="ms2">MIN(crew, PE)</div></div>
+          <div class="mt"><div class="ml">Binding constraint</div><div class="mv" id="m-binding">—</div></div>
+          <div class="mt"><div class="ml">Installs completed</div><div class="mv" id="m-installs">—</div></div>
+          <div class="mt"><div class="ml">Installs dropped</div><div class="mv" id="m-inst-drop">—</div></div>
+        </div>
+      </div>
+      <div class="bn-inline" id="bn-s6-inline"></div>
+    </div>
+  </div>
+</div>
+
+<hr class="dv">
+
+<div style="margin-bottom:1.25rem">
+  <div class="section-title">Pipeline flow</div>
+  <div id="flow-rows"></div>
+</div>
+
+<hr class="dv">
+
+<div>
+  <div class="section-title">Bottleneck summary</div>
+  <div class="bw" id="bn-summary"></div>
+</div>
+
+</main>
+
+<footer class="footer">Solviva Energy · Operational Throughput Dashboard · Confidential</footer>
+
+<script>
+const WEEKS=4.3,DAYS=22;
+const PR={
+  current:{mql_in:600,ss_hc:11,ss_rate:50,sr_hc:13,sr_rate:5,mql_split:70,ar1:25,ar2:25,ar3:25,ans_sql:40,sql_prop:60,prop_sv:90,ta_hc:8,ta_ramp:60,sv_out_wk:25,sv_ih_pct:50,drafters:8,ifc_rate:1.5,de_hc:2,de_rate:3,ifc_close:70,total_teams:10,ih_team_pct:20,inst_per_team:3,pe_sr:3,pe_jr:2,inst_per_pe:10},
+  june:   {mql_in:900,ss_hc:18,ss_rate:50,sr_hc:23,sr_rate:5,mql_split:70,ar1:25,ar2:25,ar3:25,ans_sql:40,sql_prop:60,prop_sv:90,ta_hc:8,ta_ramp:75,sv_out_wk:35,sv_ih_pct:50,drafters:8,ifc_rate:1.5,de_hc:2,de_rate:3,ifc_close:70,total_teams:17,ih_team_pct:12,inst_per_team:3,pe_sr:7,pe_jr:2,inst_per_pe:10},
+  july:   {mql_in:1200,ss_hc:18,ss_rate:50,sr_hc:30,sr_rate:5,mql_split:70,ar1:25,ar2:25,ar3:25,ans_sql:40,sql_prop:60,prop_sv:90,ta_hc:10,ta_ramp:90,sv_out_wk:35,sv_ih_pct:50,drafters:14,ifc_rate:1.5,de_hc:4,de_rate:3,ifc_close:70,total_teams:22,ih_team_pct:9,inst_per_team:3,pe_sr:7,pe_jr:2,inst_per_pe:10},
+};
+let mode='current';
+function setMode(m){mode=m;['current','june','july','custom'].forEach(x=>document.getElementById('btn-'+x).classList.toggle('active',x===m));if(PR[m]){const p=PR[m];Object.keys(p).forEach(k=>sl(k.replace(/_/g,'-'),p[k]));}r();}
+function sl(id,val){const e=document.getElementById(id);if(e)e.value=val;}
+function sc(){mode='custom';['current','june','july'].forEach(x=>document.getElementById('btn-'+x).classList.remove('active'));document.getElementById('btn-custom').classList.add('active');}
+function g(id){return parseFloat(document.getElementById(id).value);}
+function fN(n){return Math.round(n).toLocaleString();}
+function fM(n){if(!isFinite(n)||n<=0)return '—';if(n>=1000000)return '₱'+(n/1000000).toFixed(1)+'M';if(n>=1000)return '₱'+(n/1000).toFixed(0)+'k';return '₱'+Math.round(n);}
+function uCol(r){return r>1?'#E8455A':r>0.85?'#F5A623':'#2ECC8F';}
+function uCls(r){return r>1?'danger':r>0.85?'warn':'ok';}
+function setPill(id,r,lbl){const e=document.getElementById(id);e.className='sp '+(r>1?'danger':r>0.85?'warn':'ok');e.textContent=lbl;}
+function setU(vid,bid,d,c){const rat=c>0?d/c:0;const e=document.getElementById(vid);e.textContent=Math.round(rat*100)+'%';e.className='mv '+uCls(rat);const b=document.getElementById(bid);b.style.width=Math.min(rat*100,100).toFixed(1)+'%';b.style.background=uCol(rat);return rat;}
+function sv2(id,txt,cls){const e=document.getElementById(id);if(!e)return;e.textContent=txt;if(cls!==undefined)e.className='mv'+(cls?' '+cls:'');}
+function ia(cid,items){document.getElementById(cid).innerHTML=items.map(i=>`<div class="${i.l==='d'?'bi':'biw'}"><span class="ico">▲</span><span>${i.m}</span></div>`).join('');}
+
+function r(){
+  const mqlIn=g('mql-in'),ssHC=g('ss-hc'),ssRate=g('ss-rate'),srHC=g('sr-hc'),srRate=g('sr-rate');
+  const split=g('mql-split')/100,ar1=g('ar1')/100,ar2=g('ar2')/100,ar3=g('ar3')/100,ansSql=g('ans-sql')/100;
+  const sqlProp=g('sql-prop')/100,propSV=g('prop-sv')/100;
+  const taHC=g('ta-hc'),taRamp=g('ta-ramp')/100,svOutWk=g('sv-out-wk'),svIhPct=g('sv-ih-pct')/100;
+  const draf=g('drafters'),ifcRate=g('ifc-rate'),deHC=g('de-hc'),deRate=g('de-rate'),ifcCls=g('ifc-close')/100;
+  const totalTeams=g('total-teams'),ihTeamPct=g('ih-team-pct')/100,instPerTeam=g('inst-per-team');
+  const peSr=g('pe-sr'),peJr=g('pe-jr'),instPerPE=g('inst-per-pe');
+
+  document.getElementById('v-mql-in').textContent=fN(mqlIn);
+  ['ss-hc','sr-hc','ta-hc','drafters','de-hc','pe-sr','pe-jr','total-teams'].forEach(id=>document.getElementById('v-'+id).textContent=Math.round(g(id)));
+  document.getElementById('v-ss-rate').textContent=Math.round(ssRate);
+  document.getElementById('v-sr-rate').textContent=Math.round(srRate);
+  document.getElementById('v-mql-split').textContent=Math.round(split*100)+'%';
+  document.getElementById('v-sv-out-wk').textContent=Math.round(svOutWk);
+  document.getElementById('v-ih-team-pct').textContent=Math.round(ihTeamPct*100)+'%';
+  document.getElementById('v-inst-per-team').textContent=Math.round(instPerTeam);
+  document.getElementById('v-inst-per-pe').textContent=Math.round(instPerPE);
+  ['ar1','ar2','ar3','ans-sql','sql-prop','prop-sv','ta-ramp','sv-ih-pct','ifc-close'].forEach(id=>document.getElementById('v-'+id).textContent=Math.round(g(id))+'%');
+  document.getElementById('v-ifc-rate').textContent=ifcRate.toFixed(1);
+  document.getElementById('v-de-rate').textContent=deRate.toFixed(1);
+
+  document.getElementById('sbar-a').style.width=Math.round(split*100)+'%';
+  const mqlSS=mqlIn*split,mqlSR=mqlIn*(1-split);
+  document.getElementById('sn-ss').textContent=fN(Math.round(mqlSS));
+  document.getElementById('sn-sr').textContent=fN(Math.round(mqlSR));
+
+  const ihTeams=Math.round(totalTeams*ihTeamPct),outTeams=totalTeams-ihTeams;
+  document.getElementById('team-bar-a').style.width=Math.round(ihTeamPct*100)+'%';
+  document.getElementById('team-n-ih').textContent=ihTeams+' teams';
+  document.getElementById('team-n-out').textContent=outTeams+' teams';
+
+  // S1
+  const ssCap=ssHC*ssRate*DAYS,srCap=srHC*srRate*DAYS,totCap=ssCap+srCap;
+  const ssUtil=ssCap>0?mqlSS/ssCap:0,srUtil=srCap>0?mqlSR/srCap:0,totUtil=totCap>0?mqlIn/totCap:0;
+  const ssMqlProc=Math.min(mqlSS,ssCap),srMqlProc=Math.min(mqlSR,srCap),totMqlProc=ssMqlProc+srMqlProc;
+  const c1Att=totMqlProc,ans1=c1Att*ar1,noAns1=c1Att-ans1;
+  const c2Att=noAns1,ans2=c2Att*ar2,noAns2=c2Att-ans2;
+  const c3Att=noAns2,ans3=c3Att*ar3;
+  const totalReached=ans1+ans2+ans3,neverAtt=Math.max(0,mqlIn-totMqlProc),everDrop=mqlIn-totalReached;
+  const reachRate=mqlIn>0?totalReached/mqlIn:0;
+  const dSQLs=totalReached*ansSql,mqlSqlRate=mqlIn>0?dSQLs/mqlIn:0;
+
+  setPill('pill-s1',Math.max(ssUtil,srUtil),'S1');
+  sv2('m-ss-cap',fN(Math.round(ssCap)));
+  document.getElementById('m-ss-cap-sub').textContent=ssHC+' × '+Math.round(ssRate)+' × '+DAYS+'d';
+  sv2('m-sr-cap',fN(Math.round(srCap)));
+  document.getElementById('m-sr-cap-sub').textContent=srHC+' × '+Math.round(srRate)+' × '+DAYS+'d';
+  sv2('m-tot-cap',fN(Math.round(totCap)));
+  sv2('m-ss-mqls',fN(Math.round(mqlSS)));sv2('m-sr-mqls',fN(Math.round(mqlSR)));
+  setU('m-ss-util','bar-ss',mqlSS,ssCap);
+  document.getElementById('m-ss-util-sub').textContent=fN(Math.round(mqlSS))+' MQLs vs '+fN(Math.round(ssCap))+' capacity';
+  setU('m-sr-util','bar-sr',mqlSR,srCap);
+  document.getElementById('m-sr-util-sub').textContent=fN(Math.round(mqlSR))+' MQLs vs '+fN(Math.round(srCap))+' capacity';
+  setU('m-tot-util','bar-tot',mqlIn,totCap);
+  document.getElementById('m-tot-util-sub').textContent=fN(mqlIn)+' MQLs vs '+fN(Math.round(totCap))+' capacity';
+  sv2('m-reached',fN(Math.round(totalReached)));
+  document.getElementById('m-reached-sub').textContent=Math.round(reachRate*100)+'% reach rate';
+  const drEl=document.getElementById('m-dropped');drEl.textContent=fN(Math.round(everDrop));drEl.className='mv'+(everDrop>0?' warn':'');
+  sv2('m-sqls',fN(Math.round(dSQLs)));sv2('m-mql-sql-rate',Math.round(mqlSqlRate*100)+'%');
+  sv2('m-c1-att',fN(Math.round(c1Att)));sv2('m-c1-ans',fN(Math.round(ans1)));
+  sv2('m-c2-att',fN(Math.round(c2Att)));sv2('m-c2-ans',fN(Math.round(ans2)));
+  sv2('m-c3-att',fN(Math.round(c3Att)));sv2('m-c3-ans',fN(Math.round(ans3)));
+  const naEl=document.getElementById('m-never');naEl.textContent=fN(Math.round(neverAtt));naEl.className='mv'+(neverAtt>0?' warn':'');
+  sv2('m-reach-rate',Math.round(reachRate*100)+'%');
+  const fMax=mqlIn||1;
+  document.getElementById('call-funnel').innerHTML=[
+    {lbl:'MQL inflow',n:mqlIn,col:'#4A90D9'},{lbl:'C1 answered',n:ans1,col:'#2ECC8F'},{lbl:'→SQL (C1)',n:ans1*ansSql,col:'#1A8F5F'},
+    {lbl:'C2 answered',n:ans2,col:'#2ECC8F'},{lbl:'→SQL (C2)',n:ans2*ansSql,col:'#1A8F5F'},
+    {lbl:'C3 answered',n:ans3,col:'#2ECC8F'},{lbl:'→SQL (C3)',n:ans3*ansSql,col:'#1A8F5F'},
+    {lbl:'Total SQLs',n:dSQLs,col:'#7B6FE8'},
+  ].map(s=>`<div class="fv-row"><span class="fv-lbl">${s.lbl}</span><div class="fv-bar-wrap"><div class="fv-bar" style="width:${Math.min(s.n/fMax*100,100).toFixed(1)}%;background:${s.col}"></div><span class="fv-n">${fN(Math.round(s.n))}</span></div></div>`).join('');
+  const bn1=[];
+  if(neverAtt>0) bn1.push({l:'w',m:`${fN(Math.round(neverAtt))} MQLs over capacity — never get a first call.`});
+  if(ssUtil>1)   bn1.push({l:'d',m:`Support overloaded at ${Math.round(ssUtil*100)}% — ${fN(Math.round(mqlSS))} MQLs vs ${fN(Math.round(ssCap))} capacity.`});
+  if(srUtil>1)   bn1.push({l:'d',m:`Reps overloaded at ${Math.round(srUtil*100)}% — ${fN(Math.round(mqlSR))} MQLs vs ${fN(Math.round(srCap))} capacity.`});
+  ia('bn-s1-inline',bn1);
+
+  // S2–S3
+  const svOutMo=Math.round(svOutWk*WEEKS);
+  document.getElementById('calc-sv-out-mo').textContent=fN(svOutMo);
+  document.getElementById('calc-sv-out-wk').textContent=WEEKS.toFixed(1);
+  const dProps=dSQLs*sqlProp,svDemand=dProps*propSV;
+  const svIhCap=taHC*40*taRamp,svOutCap=svOutMo,svTot=svIhCap+svOutCap;
+  const svIhDem=svDemand*svIhPct,svOutDem=svDemand*(1-svIhPct);
+  const svUtil=svTot>0?svDemand/svTot:0,svIhUtil=svIhCap>0?svIhDem/svIhCap:0,svOutUtil=svOutCap>0?svOutDem/svOutCap:0;
+  const svActual=Math.min(svDemand,svTot),svDrop=Math.max(0,svDemand-svActual);
+  const svIhCostPV=taRamp>0?127500/(40*taRamp):0;
+  const svIhCostTot=taHC*127500,svOutCostTot=svOutMo*11000,svTotCost=svIhCostTot+svOutCostTot;
+  const svBlend=svTot>0?svTotCost/svTot:0,costSQL=dSQLs>0?(srHC*50000+ssHC*57000)/dSQLs:0;
+  setPill('pill-s23',svUtil,'S2–S3');
+  sv2('m-props',fN(Math.round(dProps)));sv2('m-sv-dem',fN(Math.round(svDemand)));sv2('m-sv-tot',fN(Math.round(svTot)));
+  setU('m-sv-util','bar-sv',svDemand,svTot);
+  sv2('m-sv-ih-cap',fN(Math.round(svIhCap)));
+  document.getElementById('m-sv-ih-sub').textContent=taHC+' TAs × '+Math.round(40*taRamp)+'/mo';
+  sv2('m-sv-out-cap',fN(svOutMo));sv2('m-sv-ih-dem',fN(Math.round(svIhDem)));sv2('m-sv-out-dem',fN(Math.round(svOutDem)));
+  setU('m-sv-ih-util','bar-sv-ih',svIhDem,svIhCap);setU('m-sv-out-util','bar-sv-out',svOutDem,svOutCap);
+  sv2('m-sv-act',fN(Math.round(svActual)));
+  const sdEl=document.getElementById('m-sv-drop');sdEl.textContent=fN(Math.round(svDrop));sdEl.className='mv'+(svDrop>0?' danger':'');
+  sv2('m-sv-cost-tot',fM(svTotCost));
+  document.getElementById('m-sv-cost-sub').textContent='Fixed: '+fM(svIhCostTot)+' in-house · Variable: '+fM(svOutCostTot)+' outsourced';
+  sv2('m-sv-ih-ctot',fM(svIhCostTot));sv2('m-sv-out-ctot',fM(svOutCostTot));sv2('m-sv-ih-cpv',fM(svIhCostPV));
+  document.getElementById('m-sv-ih-cpv-sub').textContent=taRamp<(39/40)?'⚠ above ₱11,000 outsourced rate':'✓ cost-competitive';
+  sv2('m-sv-blend',fM(svBlend));sv2('m-cost-sql',fM(costSQL));
+  const bn23=[];
+  if(svDemand>svTot) bn23.push({l:'d',m:`${fN(Math.round(svDrop))} proposals stranded — demand ${fN(Math.round(svDemand))} vs capacity ${fN(Math.round(svTot))}.`});
+  if(svIhUtil>1)     bn23.push({l:'w',m:`In-house TAs at ${Math.round(svIhUtil*100)}% — shift split to outsourced.`});
+  if(svOutUtil>1)    bn23.push({l:'w',m:`Outsourced at ${Math.round(svOutUtil*100)}% — increase weekly slots.`});
+  if(taRamp<(39/40)&&taHC>0) bn23.push({l:'w',m:`TA ramp at ${Math.round(taRamp*100)}%. In-house cost/visit ${fM(svIhCostPV)} vs ₱11,000 outsourced.`});
+  ia('bn-s23-inline',bn23);
+
+  // S4
+  const draftDay=draf*ifcRate,draftMo=draftDay*DAYS,deDay=deHC*deRate,deMo=deDay*DAYS;
+  const ifcDay=Math.min(draftDay,deDay),ifcMo=ifcDay*DAYS;
+  const ifcDemand=svActual,ifcActual=Math.min(ifcDemand,ifcMo),ifcDrop=Math.max(0,ifcDemand-ifcActual);
+  const ifcR=ifcMo>0?ifcDemand/ifcMo:0,deNeeded=Math.ceil(draftDay/deRate),isDEBot=deDay<draftDay;
+  const ifcUnit=ifcMo>0?(draf*42000+deHC*70000)/ifcMo:0;
+  setPill('pill-s4',ifcR,'S4');
+  sv2('m-ifc-sv-in',fN(Math.round(svActual)));sv2('m-ifc-mo',fN(Math.round(ifcMo)));
+  setU('m-ifc-util','bar-ifc',ifcDemand,ifcMo);
+  sv2('m-draft-day',fN(Math.round(draftDay)));sv2('m-draft-mo',fN(Math.round(draftMo)));
+  sv2('m-de-day',fN(Math.round(deDay)));sv2('m-de-mo',fN(Math.round(deMo)));
+  const iDayEl=document.getElementById('m-ifc-day');iDayEl.textContent=fN(Math.round(ifcDay));iDayEl.className='mv'+(isDEBot?' warn':'');
+  const dnEl=document.getElementById('m-de-needed');dnEl.textContent=deNeeded;dnEl.className='mv'+(deNeeded>deHC?' warn':'ok');
+  document.getElementById('hint-de').textContent=deNeeded>deHC?'⚠ need '+deNeeded+' DEs to match drafter output':'✓ DE capacity sufficient';
+  sv2('m-ifc-cost',fM(ifcUnit));
+  const idEl=document.getElementById('m-ifc-drop');idEl.textContent=fN(Math.round(ifcDrop));idEl.className='mv'+(ifcDrop>0?' danger':'');
+  const relMax=Math.max(svActual,ifcMo,1);
+  document.getElementById('sv-ifc-rel').innerHTML=
+    `<div class="rel-row"><span class="rel-lbl">Site visits in</span><div class="rel-bg"><div class="rel-fill" style="width:${Math.min(svActual/relMax*100,100).toFixed(1)}%;background:#4A90D9"></div></div><span class="rel-n">${fN(Math.round(svActual))}</span></div>`+
+    `<div class="rel-row"><span class="rel-lbl">IFC capacity</span><div class="rel-bg"><div class="rel-fill" style="width:${Math.min(ifcMo/relMax*100,100).toFixed(1)}%;background:#2ECC8F"></div></div><span class="rel-n">${fN(Math.round(ifcMo))}</span></div>`+
+    `<div class="rel-row"><span class="rel-lbl">IFCs produced</span><div class="rel-bg"><div class="rel-fill" style="width:${Math.min(ifcActual/relMax*100,100).toFixed(1)}%;background:#7B6FE8"></div></div><span class="rel-n">${fN(Math.round(ifcActual))}</span></div>`;
+  const bn4=[];
+  if(isDEBot)         bn4.push({l:'w',m:`DE review (${fN(Math.round(deDay))}/day) bottleneck vs drafter output (${fN(Math.round(draftDay))}/day). Add ${deNeeded-Math.round(deHC)} DE(s).`});
+  if(ifcDemand>ifcMo) bn4.push({l:'d',m:`${fN(Math.round(ifcDrop))} site visits can't convert to IFCs — design team at capacity.`});
+  ia('bn-s4-inline',bn4);
+
+  // S5
+  const dClosed=ifcActual*ifcCls,sqlCloseRate=dSQLs>0?dClosed/dSQLs:0;
+  const costDeal=dClosed>0?(srHC*50000+ssHC*57000)/dClosed:0;
+  const totalCostDeal=dClosed>0?((srHC*50000+ssHC*57000)+svTotCost)/dClosed:0;
+  setPill('pill-s5',0,'S5');
+  sv2('m-s5-sqls',fN(Math.round(dSQLs)));sv2('m-s5-props',fN(Math.round(dProps)));
+  sv2('m-s5-svs',fN(Math.round(svActual)));sv2('m-s5-ifcs',fN(Math.round(ifcActual)));
+  sv2('m-closed',fN(Math.round(dClosed)));sv2('m-sql-close-rate',Math.round(sqlCloseRate*100)+'%');
+  sv2('m-cost-deal',fM(costDeal));sv2('m-total-cost-deal',fM(totalCostDeal));
+  const scMax=dSQLs||1;
+  document.getElementById('sql-close-rel').innerHTML=
+    `<div class="rel-row"><span class="rel-lbl">SQLs</span><div class="rel-bg"><div class="rel-fill" style="width:100%;background:#4A90D9"></div></div><span class="rel-n">${fN(Math.round(dSQLs))}</span></div>`+
+    `<div class="rel-row"><span class="rel-lbl">Proposals</span><div class="rel-bg"><div class="rel-fill" style="width:${Math.min(dProps/scMax*100,100).toFixed(1)}%;background:#5DCAA5"></div></div><span class="rel-n">${fN(Math.round(dProps))}</span></div>`+
+    `<div class="rel-row"><span class="rel-lbl">Site visits</span><div class="rel-bg"><div class="rel-fill" style="width:${Math.min(svActual/scMax*100,100).toFixed(1)}%;background:#2ECC8F"></div></div><span class="rel-n">${fN(Math.round(svActual))}</span></div>`+
+    `<div class="rel-row"><span class="rel-lbl">IFCs produced</span><div class="rel-bg"><div class="rel-fill" style="width:${Math.min(ifcActual/scMax*100,100).toFixed(1)}%;background:#9F97F0"></div></div><span class="rel-n">${fN(Math.round(ifcActual))}</span></div>`+
+    `<div class="rel-row"><span class="rel-lbl">Closed sales</span><div class="rel-bg"><div class="rel-fill" style="width:${Math.min(dClosed/scMax*100,100).toFixed(1)}%;background:#7B6FE8"></div></div><span class="rel-n">${fN(Math.round(dClosed))}</span></div>`;
+
+  // S6
+  const ihCap=ihTeams*instPerTeam*WEEKS,outCap=outTeams*instPerTeam*WEEKS,crewTot=ihCap+outCap;
+  const peCeil=(peSr+peJr)*instPerPE*WEEKS,effCap=Math.min(crewTot,peCeil);
+  const instDem=dClosed,instAct=Math.min(instDem,effCap),instDrp=Math.max(0,instDem-instAct);
+  const peR=peCeil>0?instDem/peCeil:0,crewR=crewTot>0?instDem/crewTot:0,ihSh=crewTot>0?ihCap/crewTot:0;
+  setPill('pill-s6',Math.max(crewR,peR),'S6');
+  sv2('m-ih-cap',fN(Math.round(ihCap)));
+  document.getElementById('m-ih-sub').textContent=ihTeams+' teams × '+Math.round(instPerTeam)+'/wk × '+WEEKS.toFixed(1)+'w';
+  sv2('m-out-cap',fN(Math.round(outCap)));
+  document.getElementById('m-out-sub').textContent=outTeams+' teams × '+Math.round(instPerTeam)+'/wk × '+WEEKS.toFixed(1)+'w';
+  sv2('m-crew-tot',fN(Math.round(crewTot)));
+  setU('m-ih-util','bar-ih',instDem*ihSh,ihCap);setU('m-out-util','bar-out',instDem*(1-ihSh),outCap);setU('m-crew-util','bar-crew',instDem,crewTot);
+  sv2('m-pe-ceil',fN(Math.round(peCeil)));
+  document.getElementById('m-pe-sub').textContent=(peSr+peJr)+' PEs × '+Math.round(instPerPE)+'/wk × '+WEEKS.toFixed(1)+'w';
+  setU('m-pe-util','bar-pe',instDem,peCeil);
+  sv2('m-eff-cap',fN(Math.round(effCap)));
+  const bndEl=document.getElementById('m-binding');bndEl.textContent=crewTot<=peCeil?'Crew slots':'PE ceiling';bndEl.className='mv warn';
+  sv2('m-installs',fN(Math.round(instAct)));
+  const id2=document.getElementById('m-inst-drop');id2.textContent=fN(Math.round(instDrp));id2.className='mv'+(instDrp>0?' danger':'');
+  const bn6=[];
+  if(crewTot<peCeil&&instDem>crewTot) bn6.push({l:'w',m:`Crew (${fN(Math.round(crewTot))}) binding before PE ceiling (${fN(Math.round(peCeil))}). Add teams.`});
+  if(instDem>peCeil) bn6.push({l:'d',m:`PE ceiling hit — add ${Math.ceil((instDem-peCeil)/(instPerPE*WEEKS))} PE(s) to unlock.`});
+  ia('bn-s6-inline',bn6);
+
+  // Flow
+  const flows=[{label:'MQL inflow',val:mqlIn,cap:totCap},{label:'MQLs reached',val:totalReached,cap:null},{label:'SQLs',val:dSQLs,cap:null},{label:'Proposals',val:dProps,cap:null},{label:'Site visits',val:svActual,cap:svTot},{label:'IFCs produced',val:ifcActual,cap:ifcMo},{label:'Closed sales',val:dClosed,cap:null},{label:'Installations',val:instAct,cap:effCap}];
+  const maxF=Math.max(...flows.map(f=>f.val),1);
+  document.getElementById('flow-rows').innerHTML=flows.map(f=>{
+    const pct=Math.min(f.val/maxF*100,100);
+    const over=f.cap&&f.val>f.cap,near=f.cap&&!over&&f.val/f.cap>0.85;
+    const col=over?'#E8455A':near?'#F5A623':'#2ECC8F';
+    const capTxt=f.cap?`<span class="fc">cap ${fN(Math.round(f.cap))}</span>`:`<span class="fc"></span>`;
+    return `<div class="fr"><span class="fl">${f.label}</span><div class="fb"><div class="ff" style="width:${pct.toFixed(1)}%;background:${col}"></div></div><span class="fn">${fN(Math.round(f.val))}</span>${capTxt}</div>`;
+  }).join('');
+
+  // Summary
+  const allBns=[];
+  if(neverAtt>0)      allBns.push({s:'S1',t:'MQLs never attempted',m:`${fN(Math.round(neverAtt))} over first-call capacity.`,l:'w'});
+  if(ssUtil>1)        allBns.push({s:'S1',t:'Support overloaded',m:`${Math.round(ssUtil*100)}% utilisation.`,l:'d'});
+  if(srUtil>1)        allBns.push({s:'S1',t:'Reps overloaded',m:`${Math.round(srUtil*100)}% utilisation.`,l:'d'});
+  if(svDemand>svTot)  allBns.push({s:'S2–S3',t:'Site visit capacity short',m:`${fN(Math.round(svDrop))} proposals stranded.`,l:'d'});
+  if(svIhUtil>1)      allBns.push({s:'S2–S3',t:'In-house TAs over-allocated',m:`${Math.round(svIhUtil*100)}% on assigned demand.`,l:'w'});
+  if(svOutUtil>1)     allBns.push({s:'S2–S3',t:'Outsourced over-allocated',m:`${Math.round(svOutUtil*100)}% on assigned demand.`,l:'w'});
+  if(taRamp<(39/40)&&taHC>0) allBns.push({s:'S2–S3',t:'TA ramp lag',m:`In-house cost/visit ${fM(svIhCostPV)} vs ₱11,000 outsourced.`,l:'w'});
+  if(isDEBot)         allBns.push({s:'S4',t:'DE review bottleneck',m:`Need ${deNeeded} DEs; have ${Math.round(deHC)}.`,l:'w'});
+  if(ifcDemand>ifcMo) allBns.push({s:'S4',t:'IFC capacity short',m:`${fN(Math.round(ifcDrop))} site visits can't convert.`,l:'d'});
+  if(instDem>peCeil)  allBns.push({s:'S6',t:'PE ceiling hit',m:`Add ${Math.ceil((instDem-peCeil)/(instPerPE*WEEKS))} PE(s) to unlock.`,l:'d'});
+  if(crewTot<peCeil&&instDem>crewTot) allBns.push({s:'S6',t:'Crew slots binding',m:`PE has headroom — add teams.`,l:'w'});
+  document.getElementById('bn-summary').innerHTML=allBns.length===0
+    ?`<div class="bn"><span class="ico" style="color:#2ECC8F">✓</span><div class="bt">No binding constraints at current inputs.</div></div>`
+    :allBns.map(b=>`<div class="bn"><span class="ico" style="color:${b.l==='d'?'#E8455A':'#F5A623'}">▲</span><div class="bt"><b>${b.s} — ${b.t}:</b> ${b.m}</div></div>`).join('');
+}
+r();
+</script>
+</body>
+</html>
